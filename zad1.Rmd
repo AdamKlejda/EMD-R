@@ -1,0 +1,86 @@
+---
+title: "Zadanie 1"
+author: "Adam Klejda"
+date: "4 11 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  warning = FALSE,
+   message=FALSE 
+)
+```
+
+```{r loading_libs, cache=TRUE}
+library(EDAWR)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(reshape2)
+
+```
+
+##Wczytywanie danych.
+```{r load_data, cache=TRUE, results=TRUE}
+data <- data.frame(tb)
+knitr::kable(head(data))
+```
+
+##Krótkie podsumowanie.
+```{r short_summary}
+knitr::kable(summary(data))
+```
+
+##Liczba zachorowań z podziałem na płeć.
+
+```{r disases_by_gender}
+
+data_sex <- group_by(data,sex)
+data_sex <-summarise_at(data_sex,vars("child","adult","elderly"),funs(sum),na.rm=TRUE)
+data_sex$sum<- rowSums(data_sex[,c("child", "adult", "elderly")])
+knitr::kable(data_sex[, c("sex","sum")])
+```
+
+
+##Wykres liczby zachorowań wśórd dzieci, dorosłych oraz osób starszych.
+```{r disases_by_year}
+
+data_year <- group_by(data,year)
+data_year <-summarise_at(data_year,vars("child","adult","elderly"),funs(sum),na.rm=TRUE)
+data_year<- melt(data_year ,  id.vars = 'year', variable.name = 'series')
+
+g_plot <- ggplot(data_year, aes(year,value)) + geom_line(aes(colour = series))+
+  xlab("year")+
+  ylab("nr_cases")+
+  ggtitle("Nr cases per yer for each age category")
+g_plot
+
+```
+
+
+
+##Wykresy z podziałem na kraje.
+```{r disases_by_country}
+data_year_country <- group_by(data,year,country)
+
+data_year_country <-summarise_at(data_year_country,vars("child","adult","elderly"),funs(sum),na.rm=TRUE)
+
+data_year_country_melted <- melt(data_year_country ,  id.vars = c('year','country'), variable.name = 'series')
+data_agregated <-aggregate(data_year_country_melted$value,by=list(year=data_year_country_melted$year,country=data_year_country_melted$country),FUN=sum)
+
+countries <- unique(as.vector(as.matrix(data_year_country_melted["country"])))
+years <- unique(as.vector(as.matrix(data_year_country_melted["year"])))
+
+
+plot <- ggplot(data = data_agregated, aes(x = year, y=x, group=country)) + 
+  geom_line(aes(color=country), show.legend = FALSE) +
+  xlab("year")+
+  ylab("nr_cases")+
+  ggtitle("Nr cases per country")
+plot
+
+```
+
+
