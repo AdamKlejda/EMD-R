@@ -1,0 +1,177 @@
+---
+title: "Zadanie 2"
+author: "Adam Klejda"
+date: "9 11 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE, 
+  warning = FALSE,
+   message=FALSE 
+)
+```
+
+```{r loading_libs, cache=TRUE}
+library(EDAWR)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(reshape2)
+
+```
+
+##Wczytywanie danych.
+```{r load_data, cache=TRUE, results=TRUE}
+data <- data.frame(diamonds)
+knitr::kable(head(data))
+```
+
+##Krótkie podsumowanie.
+```{r short_summary}
+knitr::kable(summary(data))
+```
+
+##Wykres z depth.
+
+```{r depth_hist}
+
+plot <- ggplot(data = data) + 
+  geom_histogram(aes(depth),data=data , col=I("blue"),show.legend = FALSE) +
+  ggtitle("Depth Histogram")
+plot
+
+```
+
+##Wykres z depth, szerokość kubełka.
+
+```{r depth_hist_bindwidth}
+
+plot <- ggplot(data = data) + 
+  geom_histogram(aes(depth),data=data , col=I("blue"),show.legend = FALSE,binwidth=0.2) +
+  ggtitle("Depth Histogram bindwith=0.2")
+plot
+
+```
+##Wykres z depth, szerokość kubełka, oś w przedziale [55,70].
+
+```{r depth_xlim}
+
+plot <- ggplot(data = data) + 
+  geom_histogram(aes(depth),data=data , col=I("blue"),show.legend = FALSE,binwidth=0.2) +
+  xlim(55,70)+
+  ggtitle("Depth Histogram xlim(55,70)")
+plot
+
+```
+##Wpływ zmiennej CUT za pomoca koloru.
+
+```{r depth_color}
+
+plot <- ggplot(data) + 
+  geom_histogram(aes(depth,color=cut),binwidth=0.2) +
+  xlim(55,70)+
+  ggtitle("Depth Histogram Color by Cut")
+plot
+
+```
+
+##Wpływ zmiennej CUT za pomoca paneli
+
+```{r depth__panels}
+
+plot <- ggplot(data = data) + 
+  geom_histogram(aes(depth),data=data , col=I("blue"),show.legend = FALSE,binwidth=0.2) +
+  xlim(55,70)+
+  facet_wrap(~cut)+
+  ggtitle("Depth Histogram panels by cut")
+plot
+
+```
+
+
+
+
+##Powtórka dla price
+
+
+```{r price}
+
+plot <- ggplot(data = data) + 
+  geom_histogram(aes(price),data=data , col=I("blue"),show.legend = FALSE) +
+  ggtitle("Price Histogram")
+plot
+
+```
+
+##Wykres z price, szerokość kubełka.
+
+```{r price_bindw}
+
+plot <- ggplot(data = data) + 
+  geom_histogram(aes(price),data=data , col=I("blue"),show.legend = FALSE,binwidth=250) +
+  ggtitle("Price Histogram binwidth=250")
+plot
+
+```
+##Wykres z price, szerokość kubełka, oś w przedziale [55,70].
+
+```{r price_xlim}
+
+plot <- ggplot(data = data) + 
+  geom_histogram(aes(price),data=data , col=I("blue"),show.legend = FALSE,binwidth=250) +
+  xlim(0,6000)+
+  ggtitle("Price Histogram")
+plot
+
+```
+##Wpływ zmiennej CUT za pomoca koloru.
+
+```{r price_color}
+
+plot <- ggplot(data) + 
+  geom_histogram(aes(price,color=cut),binwidth=250) +
+  xlim(0,6000)+
+  ggtitle("Price Histogram Color by Cut")
+plot
+
+```
+
+##Wpływ zmiennej CUT za pomoca paneli
+
+```{r price_panels}
+
+plot <- ggplot(data = data) + 
+  geom_histogram(aes(price),data=data , col=I("blue"),show.legend = FALSE,binwidth=250) +
+  xlim(0,6000)+
+  facet_wrap(~cut)+
+  ggtitle("Price Histogram Panels by CUt")
+plot
+
+```
+
+
+
+
+##Relacja Carat - price 
+
+```{r Carat-price}
+
+plot <- ggplot(data = data,aes(price,carat,color=clarity)) + 
+  geom_point(alpha = 1/10) +
+  ggtitle("Price-Carat ")
+plot
+
+```
+
+##Relacja Carat - price lower_density
+
+```{r Carat-price_sample}
+sample <- data[sample(nrow(data),2000),]
+plot <- ggplot(data = sample,aes(price,carat,color=clarity)) + 
+  geom_point(alpha = 1) +
+  ggtitle("Price-Carat 2k sample ")
+plot
+
+```
