@@ -1,0 +1,263 @@
+---
+title: "Zadanie 3"
+author: "Adam Klejda"
+date: "26 11 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r loading_libs, message=FALSE, warning=FALSE, results=FALSE, cache=TRUE}
+library(caret)
+library(modeldata)
+library(cowplot)
+```
+
+##Wczytywanie danych.
+```{r load_data, cache=TRUE, results=TRUE}
+data(mlc_churn)
+data <- data.frame(mlc_churn)
+knitr::kable(head(data))
+knitr::kable(summary(data))
+```
+
+##Podział na uczący/testowy.
+```{r train_test_split}
+set.seed(42)
+inTraining <-
+    createDataPartition(
+        y = data$churn,
+        p = .75,
+        list = FALSE)
+
+churn_training <- data[ inTraining,]
+print(nrow(churn_training))
+churn_testing  <- data[-inTraining,]
+print(nrow(churn_testing))
+```
+
+##Uczenie Knn oraz Rforest.
+```{r train_test1}
+t_ctrl <- trainControl(
+  method = "cv",
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary)
+
+knnFit <- train(churn ~.,
+                data =churn_training ,
+                method = "knn",
+                #tuneLength = 10,
+                metric = "ROC",
+                trControl = t_ctrl)
+
+print(knnFit)
+
+rfFit <- train(churn ~.,
+               data =churn_training ,
+               method = "rf",
+               trControl = t_ctrl,
+               metric = "ROC",
+               ntree = 10)
+print(rfFit)
+
+svmbFit <- train(churn ~.,
+               data =churn_training ,
+               method = "svmRadial",
+               metric = "ROC",
+               trControl = t_ctrl)
+print(svmbFit)
+```
+
+##Wyniki na zbiorze testowym.
+```{r train_test2}
+print("KNN:")
+knnClasses <- predict(knnFit, newdata = churn_testing)
+confusionMatrix(data = knnClasses, churn_testing$churn)
+print("RANDOM FOREST:")
+rfClasses <- predict(rfFit, newdata = churn_testing)
+confusionMatrix(data = rfClasses, churn_testing$churn)
+print("SVM:")
+svmClasses <- predict(svmbFit, newdata = churn_testing)
+confusionMatrix(data = svmClasses, churn_testing$churn)
+```
+##PREPROCESSING
+Uważam, że przetwarzanie wstępne może pomóc i jeśli jest możliwe to jest wskazane. Niektóre algorytmy są bardzo podatne na dane z wartościami o różnych zakresach. Dla niektórych algorytmów, takich jak Random Forest, przetwarzanie wstępne nie wpłynie na wynik końcowy.
+Poniżej zamiesciłem przykład preprocessingu dla SVM który poprawił wynik ACC o kilka setnych. 
+```{r train_test_preprocess}
+t_ctrl <- trainControl(
+  method = "cv",
+  classProbs = TRUE,
+  summaryFunction = twoClassSummary)
+
+svmFitp <- train(churn ~.,
+                data =churn_training ,
+                method = "svmRadial",
+                preProc =c("center", "scale", "nzv"),
+                metric = "ROC",
+                trControl = t_ctrl)
+
+
+print("SVM:")
+svmClasses <- predict(svmFitp, newdata = churn_testing)
+confusionMatrix(data = svmClasses, churn_testing$churn)
+
+
+```
+##Zmiana hiperparametrów
+```{r hiper_params}
+
+gridCtrl <- trainControl(
+    method = "repeatedcv",
+    summaryFunction = twoClassSummary,
+    classProbs = TRUE,
+    number = 2,
+    repeats = 5)
+
+rfGrid <- expand.grid(mtry = 5:20)
+rfFitTune <- train(churn ~.,
+             data =churn_training ,
+             method = "rf",
+             metric = "ROC",
+             preProc = c("center", "scale"),
+             trControl = gridCtrl,
+             tuneGrid = rfGrid,
+             ntree = 20)
+
+knnGrid <- expand.grid(k = 1:15)
+knnFitTune <- train(churn ~.,
+             data =churn_training ,
+             method = "knn",
+             metric = "ROC",
+             preProc = c("center", "scale"),
+             trControl = gridCtrl,
+             tuneGrid = knnGrid)
+
+#svmGrid <- expand.grid( sigma =c(0.0001,0.01,1),C = c(0.1,1,10,100)
+#                       )
+#svmFitTune <- train(churn ~.,
+#              data =churn_training ,
+#               method = "svmRadial",
+#               metric = "ROC",
+#               trControl = t_ctrl,
+#               tuneGrid = svmGrid)
+#print(svnFitTune)
+
+
+
+
+```
+
+
+##Porównanie wyników
+Poniżej porzedstawiono wykresy porównań dwóch klasyfikatorów. Jak widać w tym zestawieniu, lepsze wyniki w skali ROC osiąga RandomForest. 
+```{r test}
+resamps <- resamples(list(KNN = knnFitTune,
+                          RandomForest = rfFitTune))
+
+dp<- dotplot(resamps,
+        scales =list(x = list(relation = "free")),
+        between = list(x = 2))
+
+bp<- bwplot(resamps,
+       metric = "ROC")
+
+densp<- densityplot(resamps,
+            auto.key = list(columns = 2),
+            pch = "|")
+
+#xyplot(resamps,
+#       models = c("KNN", "RandomForest"),
+#       metric = "ROC")
+
+#splom(resamps, metric = "ROC")
+#splom(resamps, variables = "metrics")
+
+#parallelplot(resamps, metric = "ROC")
+
+print(dp)
+print(bp)
+print(densp)
+```
+#CZĘŚĆ 2
+
+
+```{r loading_libs2, message=FALSE, warning=FALSE, results=FALSE, cache=TRUE}
+library(ggplot2)
+library(dplyr)
+```
+
+##Wczytywanie danych.
+```{r load_data2, cache=TRUE, results=TRUE}
+data(diamonds)
+data <- data.frame(diamonds)
+knitr::kable(head(data))
+knitr::kable(summary(data))
+```
+
+
+##Dzielenie danych na zbiór trenignowy i testowy
+
+```{r train_test_split2}
+set.seed(42)
+inTraining <-
+    createDataPartition(
+        y = data$price,
+        p = .70,
+        list = FALSE)
+
+diam_training <- data[ inTraining,]
+print(nrow(diam_training))
+diam_testing  <- data[-inTraining,]
+print(nrow(diam_testing))
+```
+##Uczenie modelu regresji
+```{r train2}
+t_ctrl <- trainControl(
+  method = "cv")
+
+enetFit <- train(price ~.,
+                data =diam_training ,
+                method = "enet",
+                trControl = t_ctrl)
+
+print(enetFit)
+
+```
+
+##Testowanie modelu regresji
+
+```{r prediction}
+x_test <- diam_testing[, names(diam_testing) != 'price']
+y_test <- diam_testing$price
+
+predictions <- predict(enetFit, x_test)
+
+RMSE(predictions, y_test)
+```
+##Ważność zmiennych
+Jak widać, według varImp, najistotniejsze zmienne to carat oraz x,y,z
+```{r var_imp}
+gbmImp <- varImp(enetFit, scale = FALSE)
+plot(gbmImp)
+```
+
+
+```{r price2}
+data_plot <- sample_n(data, 500)
+featurePlot(x = data_plot[, c("depth", "table","carat", "x", "y", "z")],
+            y = data_plot$price,
+            plot = "scatter",
+            type = c("p", "smooth"),
+           )
+
+```
+
+```{r price3}
+ggplot(data_plot,aes(y=price,x=color))+geom_col()
+ggplot(data_plot,aes(y=price,x=clarity))+geom_col()
+ggplot(data_plot,aes(y=price,x=cut))+geom_col()
+
+```
