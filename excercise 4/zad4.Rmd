@@ -1,0 +1,73 @@
+---
+title: "zad4"
+author: "Adam Klejda"
+date: "4 12 2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r loading_libs, message=FALSE, warning=FALSE, results=FALSE, cache=TRUE}
+library(fpc)
+library(ggplot2)
+library(cowplot)
+library(factoextra)
+library(fpc)
+library(NbClust)
+library(caret)
+library(aricode)
+library(expss)
+```
+
+##Wczytywanie danych.
+```{r load_data, cache=TRUE, results=TRUE}
+set.seed(23)
+face <- rFace(1000, p=2, dMoNo=3)
+df = data.frame(x=face[,1], y=face[,2])
+labels = as.integer(attr(face,"grouping"))
+uniueL = length(unique(labels))
+names = c(1,2,3,4,5,6)
+
+ggplot(df, aes(x, y, )) + 
+    geom_point() + 
+    theme_bw()
+
+summary(df)
+```
+
+##Analiza różnych algorytmmów.
+### Kmedois
+```{r k_medoids, cache=TRUE, results=TRUE}
+kMedois <- eclust(df, "pam", k = uniueL, graph = F)
+fviz_cluster(kMedois, palette = "jco", ggtheme = theme_minimal())
+confusionMatrix(table(labels, kMedois$cluster),row.names=names, col.names=names)
+
+```
+### KMeans
+```{r k_means, cache=TRUE, results=TRUE}
+kmModel <- eclust(df, "kmeans", k = uniueL, nstart = 25, graph = F)
+fviz_cluster(kmModel, palette = "jco", ggtheme = theme_minimal())
+fviz_silhouette(kmModel, palette = "jco", ggtheme = theme_classic(), print.summary = F)
+confusionMatrix(table(labels, kmModel$cluster),row.names=names, col.names=names)
+
+```
+### AHC
+```{r ahc, cache=TRUE, results=TRUE}
+ahcModel <- eclust(df, "hclust", k = uniueL, hc_metric = "euclidean", hc_method = "ward.D2", graph = F)
+fviz_cluster(ahcModel, palette = "jco", ggtheme = theme_minimal())
+fviz_dend(ahcModel, show_labels = F, palette = "jco", as.ggplot = T)
+fviz_silhouette(ahcModel, palette = "jco", ggtheme = theme_classic(), print.summary = F)
+
+confusionMatrix(table(labels, ahcModel$cluster),row.names=names, col.names=names)
+
+```
+## Porównanie liczbowe 
+```{r porownanieAmi, cache=TRUE, results=TRUE}
+amis <- c(AMI(kMedois$cluster, labels),AMI(kmModel$cluster, labels),AMI(ahcModel$cluster, labels))
+algs <- c("K Medois","KMeans","AHC")
+data.frame(Algorytm=algs,
+           AMI=amis
+)%>% knitr::kable()
+```
